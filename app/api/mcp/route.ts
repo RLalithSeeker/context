@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { z } from 'zod';
 import * as tools from '@/lib/tools';
+import { keyStore } from '@/lib/groq';
 
 function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -114,8 +115,12 @@ async function getTransport(request: Request): Promise<WebStandardStreamableHTTP
 
 export async function POST(request: Request) {
   try {
-    const transport = await getTransport(request);
-    return await transport.handleRequest(request);
+    // Bring-your-own-key: caller's Groq key (header) is scoped to this request only.
+    const apiKey = request.headers.get('x-groq-key') || '';
+    return await keyStore.run(apiKey, async () => {
+      const transport = await getTransport(request);
+      return await transport.handleRequest(request);
+    });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }

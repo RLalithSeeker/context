@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as tools from '@/lib/tools';
+import { keyStore } from '@/lib/groq';
 
 const TOOL_MAP: Record<string, Function> = {
   scrape_markdown: tools.cmd_scrape_markdown,
@@ -22,7 +23,9 @@ const TOOL_MAP: Record<string, Function> = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { command, url, ...params } = body;
+    const { command, url, apiKey: bodyKey, ...params } = body;
+    // Bring-your-own-key: header preferred, body fallback. Used only for this request, never stored/logged.
+    const apiKey = request.headers.get('x-groq-key') || bodyKey || '';
     if (!command || !TOOL_MAP[command]) {
       return NextResponse.json({ error: `Unknown command`, available: Object.keys(TOOL_MAP) }, { status: 400 });
     }
@@ -30,17 +33,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
     const fn = TOOL_MAP[command];
-    const result = command === 'transaction'
-      ? await fn(params.descriptor, params.amount)
-      : command === 'query'
-      ? await fn(url, params.question)
-      : command === 'extract_structured'
-      ? await fn(url, params.schema, params.instruction)
-      : command === 'scrape_html'
-      ? await fn(url, params.selector)
-      : command === 'crawl'
-      ? await fn(url, params.maxPages, params.maxDepth)
-      : await fn(url);
+    const result = await keyStore.run(apiKey, () =>
+      command === 'transaction'
+        ? fn(params.descriptor, params.amount)
+        : command === 'query'
+        ? fn(url, params.question)
+        : command === 'extract_structured'
+        ? fn(url, params.schema, params.instruction)
+        : command === 'scrape_html'
+        ? fn(url, params.selector)
+        : command === 'crawl'
+        ? fn(url, params.maxPages, params.maxDepth)
+        : fn(url)
+    );
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
