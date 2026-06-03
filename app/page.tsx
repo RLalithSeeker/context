@@ -20,6 +20,7 @@ const TOOLS: Tool[] = [
   { id: "product", label: "product" },
   { id: "brand", label: "brand" },
   { id: "styleguide", label: "styleguide" },
+  { id: "design_extract", label: "design_extract" },
   { id: "fonts", label: "fonts" },
   { id: "classify_naics", label: "naics" },
   { id: "classify_sic", label: "sic" },
@@ -27,7 +28,7 @@ const TOOLS: Tool[] = [
   { id: "logo", label: "logo" },
 ];
 
-const LLM_TOOLS = new Set(["extract_structured", "query", "product", "brand", "styleguide", "classify_naics", "classify_sic", "transaction"]);
+const LLM_TOOLS = new Set(["extract_structured", "query", "product", "brand", "styleguide", "design_extract", "classify_naics", "classify_sic", "transaction"]);
 
 const HERO_TABS: Record<string, string> = {
   cURL: `curl -X POST ${BASE}/api/tools \\
@@ -154,7 +155,7 @@ export default function Home() {
           <div className="hero-inner">
             <span className="eyebrow"><span className="live" /> v1.0 · MCP + REST · bring your own key</span>
             <h1>The context layer<br />for any website</h1>
-            <p className="sub">Fifteen scraping and LLM tools behind one endpoint. Markdown, structured JSON, brand intel, fonts, products — from a single URL. You bring your own Groq key; we store nothing.</p>
+            <p className="sub">Sixteen scraping and LLM tools behind one endpoint. Markdown, structured JSON, brand intel, design systems, fonts, products — from a single URL. You bring your own Groq key; we store nothing.</p>
             <div className="cta-row">
               <a className="btn-primary-link" onClick={() => scrollTo("console")} href="#console">{Rocket} Try it live</a>
               <a className="btn-secondary" href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer">{Github} View source</a>
@@ -298,7 +299,7 @@ export default function Home() {
         {/* FINAL CTA */}
         <section className="cta-block">
           <h2>Start pulling context</h2>
-          <p>Free Groq key, one endpoint, fifteen tools. No account, nothing stored.</p>
+          <p>Free Groq key, one endpoint, sixteen tools. No account, nothing stored.</p>
           <div className="cta-row">
             <a className="btn-primary-link" onClick={() => scrollTo("console")} href="#console">{Rocket} Open the playground</a>
             <a className="btn-secondary" href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer">{Github} Star on GitHub</a>

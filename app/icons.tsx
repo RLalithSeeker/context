@@ -17,6 +17,7 @@ export const ICONS: Record<string, ReactNode> = {
   product: s(<><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18M16 10a4 4 0 0 1-8 0" /></>),
   brand: s(<><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 8h6M9 12h6M9 16h3" /></>),
   styleguide: s(<><circle cx="13.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="12" r="2.5" /><circle cx="8.5" cy="7.5" r="2.5" /><circle cx="6.5" cy="13" r="2.5" /><path d="M12 22a10 10 0 1 1 0-20" /></>),
+  design_extract: s(<><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M17.5 14v7M14 17.5h7" /></>),
   fonts: s(<><path d="M4 7V5h16v2M9 19h6M12 5v14" /></>),
   classify_naics: s(<><path d="M3 3v18h18" /><rect x="7" y="11" width="3" height="6" /><rect x="12" y="7" width="3" height="10" /><rect x="17" y="13" width="3" height="4" /></>),
   classify_sic: s(<><path d="M3 3v18h18" /><path d="m7 14 3-3 3 3 5-6" /></>),
