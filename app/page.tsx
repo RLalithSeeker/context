@@ -97,6 +97,7 @@ export default function Home() {
   const [copied, setCopied] = useState("");
   const [heroTab, setHeroTab] = useState("cURL");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [outputTab, setOutputTab] = useState("DESIGN.md");
 
   useEffect(() => {
     try { const k = localStorage.getItem("groq_key"); if (k) setGroqKey(k); } catch {}
@@ -133,6 +134,7 @@ export default function Home() {
       const data = await resp.json();
       if (data.error) throw new Error(data.error);
       setResult(data);
+      setOutputTab("DESIGN.md");
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -258,24 +260,38 @@ export default function Home() {
 
               {error && <div className="error" role="alert">{error}</div>}
 
-              {result && (
-                <div className="result">
-                  <div className="result-head">
-                    <span className="tag"><span className="live" /> 200 OK</span>
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      {tool.id === "design_extract" && result.outputs?.design_md && (
-                        <button className="btn-ghost" onClick={() => download(result.outputs.design_md, "DESIGN.md", "text/markdown")}>↓ DESIGN.md</button>
-                      )}
-                      {tool.id === "design_extract" && result.outputs?.design_tokens && (
-                        <button className="btn-ghost" onClick={() => download(JSON.stringify(result.outputs.design_tokens, null, 2), "design-tokens.json", "application/json")}>↓ tokens.json</button>
-                      )}
-                      <button className="btn-ghost" onClick={() => download(JSON.stringify(result, null, 2), `${tool.id}-result.json`, "application/json")}>↓ JSON</button>
-                      <button className="btn-ghost" onClick={() => copy(JSON.stringify(result, null, 2), "result")}>{copied === "result" ? "copied" : "copy"}</button>
+              {result && (() => {
+                const isDesign = tool.id === "design_extract" && result.outputs;
+                const OUTPUT_TABS = isDesign ? [
+                  { id: "DESIGN.md",      content: result.outputs.design_md,                                      file: "DESIGN.md",           mime: "text/markdown" },
+                  { id: "Tailwind v4",    content: result.outputs.tailwind,                                       file: "tailwind.css",        mime: "text/css" },
+                  { id: "CSS Variables",  content: result.outputs.css_variables,                                  file: "variables.css",       mime: "text/css" },
+                  { id: "Design Tokens",  content: JSON.stringify(result.outputs.design_tokens, null, 2),         file: "design-tokens.json",  mime: "application/json" },
+                  { id: "Full JSON",      content: JSON.stringify(result, null, 2),                               file: `${tool.id}-result.json`, mime: "application/json" },
+                ] : [
+                  { id: "JSON",           content: JSON.stringify(result, null, 2),                               file: `${tool.id}-result.json`, mime: "application/json" },
+                ];
+                const active = OUTPUT_TABS.find(t => t.id === outputTab) ?? OUTPUT_TABS[0];
+                return (
+                  <div className="result">
+                    <div className="result-head">
+                      <span className="tag"><span className="live" /> 200 OK</span>
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                        <button className="btn-ghost" onClick={() => copy(active.content, "result")}>{copied === "result" ? "copied" : "copy"}</button>
+                        <button className="btn-ghost" onClick={() => download(active.content, active.file, active.mime)}>↓ {active.id === "Full JSON" || active.id === "JSON" ? "JSON" : active.file}</button>
+                      </div>
                     </div>
+                    {isDesign && (
+                      <div className="tabbar" style={{ borderBottom: "1px solid var(--border)", marginBottom: 0 }}>
+                        {OUTPUT_TABS.map(t => (
+                          <button key={t.id} className={`tab${outputTab === t.id ? " active" : ""}`} onClick={() => setOutputTab(t.id)}>{t.id}</button>
+                        ))}
+                      </div>
+                    )}
+                    <pre className="out">{active.content}</pre>
                   </div>
-                  <pre className="out">{JSON.stringify(result, null, 2)}</pre>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         </section>
