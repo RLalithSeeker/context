@@ -3,6 +3,8 @@ import {
   getLinks, getImages, getCssUrls, fetchCss, getFonts, getLogoUrl,
 } from './scraping';
 import { loadPrompt, callGroq, callGroqText } from './groq';
+import { analyzeCss } from './css-analyzer';
+import { toDesignMd, toTailwindV4, toCssVariables, toDesignTokensJson, type NarrativeLayer } from './design-outputs';
 
 // ── 1. scrape_markdown (no LLM) ──
 export async function cmd_scrape_markdown(url: string) {
@@ -124,6 +126,100 @@ export async function cmd_styleguide(url: string) {
     try { const r = await fetchCss(cu); if (r) cssContent += `\n/* ${cu} */\n${r.substring(0, 3000)}`; } catch {}
   }
   return callGroq(await loadPrompt('styleguide_extraction'), `CSS:\n${cssContent.substring(0, 10000)}\n\nHTML:\n${html.substring(0, 5000)}`);
+}
+
+// ── 16. design_extract (frequency analysis + LLM narrative) ──
+export async function cmd_design_extract(url: string) {
+  const html = await fetchHtml(url);
+  const title = getTitle(html);
+  const meta = getMeta(html);
+
+  // Fetch ALL CSS — much more than the old styleguide tool
+  const cssUrls = getCssUrls(html, url);
+  const cssParts: string[] = [];
+
+  // Inline styles
+  const { load } = await import('cheerio');
+  const $ = load(html);
+  $('style').each((_: any, el: any) => { const t = $(el).text(); if (t.length > 20) cssParts.push(t); });
+
+  // External CSS — 25KB per file, up to 6 files
+  const fetches = cssUrls.slice(0, 6).map(async (cu: string) => {
+    try {
+      const r = await fetch(cu, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+      if (r.ok) cssParts.push((await r.text()).slice(0, 25000));
+    } catch {}
+  });
+  await Promise.all(fetches);
+
+  const fullCss = cssParts.join('\n').slice(0, 120000);
+
+  // Frequency-based token extraction (no LLM)
+  const design = analyzeCss(fullCss, html);
+
+  // Content for LLM narrative
+  const md = toMarkdown(cleanHtml(html, url)).slice(0, 6000);
+
+  // Run brand + narrative in parallel
+  const [brandResult, narrativeResult] = await Promise.all([
+    callGroq(await loadPrompt('brand_intelligence'),
+      `URL: ${url}\nTitle: ${title}\nMeta: ${JSON.stringify(meta)}\n\n${md}`
+    ),
+    callGroq(
+      `You are a design system analyst. Based on the extracted design data, return JSON with:
+- "overview": string (2-3 sentences describing visual personality, tone, and design philosophy)
+- "style_tags": string[] (4-6 lowercase adjectives like "minimal", "modern", "bold")
+- "components": [{name: string, description: string}] (3-5 key UI components you can infer)
+- "dos": string[] (3-4 design do's from the system)
+- "donts": string[] (3-4 design don'ts)`,
+      `Site: ${title} (${url})
+Colors: ${design.colors.slice(0,8).map(c=>`${c.hex} (${c.name}/${c.group})`).join(', ')}
+Fonts: ${design.typography.font_families.slice(0,3).join(', ')}
+Type scale: ${design.typography.type_scale.slice(0,5).map(t=>`${t.role}=${t.size}`).join(', ')}
+Spacing base: ${design.spacing.base_unit}
+Radius: ${design.border_radius.values.slice(0,4).join(', ')}
+Design system: ${design.design_system_detected || 'custom'}
+Has shadows: ${design.shadows.length > 0}
+${md.slice(0, 2000)}`
+    ),
+  ]);
+
+  const brand = brandResult.data as any || {};
+  const narrative: NarrativeLayer = {
+    overview: narrativeResult.data?.overview || brand.description || '',
+    style_tags: narrativeResult.data?.style_tags || [],
+    components: narrativeResult.data?.components || [],
+    dos: narrativeResult.data?.dos || [],
+    donts: narrativeResult.data?.donts || [],
+  };
+
+  const brandInfo = {
+    name: brand.brand_name || brand.company_name || title || new URL(url).hostname,
+    industry: brand.industry || null,
+    description: brand.description || null,
+  };
+
+  const design_md     = toDesignMd(design, brandInfo, url, narrative);
+  const tailwind      = toTailwindV4(design);
+  const css_variables = toCssVariables(design);
+  const design_tokens = toDesignTokensJson(design, brandInfo);
+
+  return {
+    url,
+    title: brandInfo.name,
+    brand: { ...brand, ...brandInfo },
+    design,
+    overview: narrative.overview,
+    style_tags: narrative.style_tags,
+    outputs: {
+      design_md,
+      tailwind,
+      css_variables,
+      design_tokens,
+      agent_file: design_md, // same as design_md — drop into AI agent context
+    },
+    tokens_used: (brandResult.tokens_used || 0) + (narrativeResult.tokens_used || 0),
+  };
 }
 
 // ── 11. fonts (no LLM) ──

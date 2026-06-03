@@ -13,6 +13,7 @@ const TOOL_MAP: Record<string, Function> = {
   product: tools.cmd_product,
   brand: tools.cmd_brand,
   styleguide: tools.cmd_styleguide,
+  design_extract: tools.cmd_design_extract,
   fonts: tools.cmd_fonts,
   classify_naics: tools.cmd_classify_naics,
   classify_sic: tools.cmd_classify_sic,
