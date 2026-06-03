@@ -1,27 +1,29 @@
 "use client";
 import { useState } from "react";
 import "./globals.css";
+import Mesh from "./Mesh";
+import { ICONS, Rocket, Github } from "./icons";
 
 const MCP_URL = "https://context-mcp-psi.vercel.app/api/mcp";
 
-type Tool = { id: string; label: string; ico: string; needsExtra?: "question" | "schema" };
+type Tool = { id: string; label: string; needsExtra?: "question" | "schema" };
 
 const TOOLS: Tool[] = [
-  { id: "scrape_markdown", label: "Scrape Markdown", ico: "📄" },
-  { id: "scrape_html", label: "Scrape HTML", ico: "🔧" },
-  { id: "crawl", label: "Crawl Site", ico: "🕸️" },
-  { id: "extract_images", label: "Extract Images", ico: "🖼️" },
-  { id: "sitemap", label: "Parse Sitemap", ico: "🗺️" },
-  { id: "extract_structured", label: "AI Extract", ico: "🤖", needsExtra: "schema" },
-  { id: "query", label: "Query Page", ico: "💬", needsExtra: "question" },
-  { id: "product", label: "Product Data", ico: "🛒" },
-  { id: "brand", label: "Brand Intel", ico: "🏢" },
-  { id: "styleguide", label: "Style Guide", ico: "🎨" },
-  { id: "fonts", label: "Fonts", ico: "🔤" },
-  { id: "classify_naics", label: "NAICS Code", ico: "📊" },
-  { id: "classify_sic", label: "SIC Code", ico: "📈" },
-  { id: "transaction", label: "Txn Enrich", ico: "💳" },
-  { id: "logo", label: "Logo URL", ico: "🔗" },
+  { id: "scrape_markdown", label: "Scrape Markdown" },
+  { id: "scrape_html", label: "Scrape HTML" },
+  { id: "crawl", label: "Crawl Site" },
+  { id: "extract_images", label: "Extract Images" },
+  { id: "sitemap", label: "Parse Sitemap" },
+  { id: "extract_structured", label: "AI Extract", needsExtra: "schema" },
+  { id: "query", label: "Query Page", needsExtra: "question" },
+  { id: "product", label: "Product Data" },
+  { id: "brand", label: "Brand Intel" },
+  { id: "styleguide", label: "Style Guide" },
+  { id: "fonts", label: "Fonts" },
+  { id: "classify_naics", label: "NAICS Code" },
+  { id: "classify_sic", label: "SIC Code" },
+  { id: "transaction", label: "Txn Enrich" },
+  { id: "logo", label: "Logo URL" },
 ];
 
 const CONFIG = `{
@@ -78,20 +80,25 @@ export default function Home() {
         <div className="brand"><span className="dot" /> Context-MCP</div>
         <div className="nav-links">
           <a className="nav-link" href="/api/tools">REST API</a>
-          <a className="nav-link primary" href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer">★ GitHub</a>
+          <a className="nav-link primary" href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer" aria-label="GitHub repository">
+            {Github} GitHub
+          </a>
         </div>
       </nav>
 
       <div className="wrap">
         <header className="hero">
-          <span className="pill"><span className="live" /> Live · MCP Streamable HTTP</span>
-          <h1>Turn any website into<br /><span className="grad">structured context</span></h1>
-          <p>15 web-scraping &amp; LLM tools behind one MCP endpoint. Paste a URL, pick a tool, get clean data — markdown, products, brand intel, fonts, and more.</p>
-          <div className="stats">
-            <div className="stat"><b>15</b><span>Tools</span></div>
-            <div className="stat"><b>MCP</b><span>Streamable HTTP</span></div>
-            <div className="stat"><b>REST</b><span>JSON API</span></div>
-            <div className="stat"><b>Groq</b><span>LLM Engine</span></div>
+          <Mesh />
+          <div className="hero-inner">
+            <span className="pill"><span className="live" /> Live · MCP Streamable HTTP</span>
+            <h1>Turn any website into<br /><span className="grad">structured context</span></h1>
+            <p>15 web-scraping &amp; LLM tools behind one MCP endpoint. Paste a URL, pick a tool, get clean data — markdown, products, brand intel, fonts, and more.</p>
+            <div className="stats">
+              <div className="stat"><b>15</b><span>Tools</span></div>
+              <div className="stat"><b>MCP</b><span>Streamable HTTP</span></div>
+              <div className="stat"><b>REST</b><span>JSON API</span></div>
+              <div className="stat"><b>Groq</b><span>LLM Engine</span></div>
+            </div>
           </div>
         </header>
 
@@ -99,17 +106,18 @@ export default function Home() {
           <div className="card-head"><span className="num">1</span><h2>Try it live</h2></div>
 
           <div className="field">
-            <label className="label">Target URL</label>
-            <input className="input" type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
+            <label className="label" htmlFor="url">Target URL</label>
+            <input id="url" className="input" type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
           </div>
 
           <div className="field">
             <label className="label">Pick a tool</label>
-            <div className="tools">
+            <div className="tools" role="group" aria-label="Tool selector">
               {TOOLS.map(t => (
                 <button key={t.id} onClick={() => { setTool(t); setExtraVal(""); }}
+                  aria-pressed={tool.id === t.id}
                   className={`tool${tool.id === t.id ? " active" : ""}`}>
-                  <span className="ico">{t.ico}</span> {t.label}
+                  {ICONS[t.id]} {t.label}
                 </button>
               ))}
             </div>
@@ -117,17 +125,17 @@ export default function Home() {
 
           {tool.needsExtra && (
             <div className="field">
-              <label className="label">{tool.needsExtra === "question" ? "Question" : "JSON Schema"}</label>
-              <input className="input mono" type="text" value={extraVal} onChange={e => setExtraVal(e.target.value)}
+              <label className="label" htmlFor="extra">{tool.needsExtra === "question" ? "Question" : "JSON Schema"}</label>
+              <input id="extra" className="input mono" type="text" value={extraVal} onChange={e => setExtraVal(e.target.value)}
                 placeholder={tool.needsExtra === "question" ? "What is this page about?" : '{"type":"object","properties":{"name":{"type":"string"}}}'} />
             </div>
           )}
 
           <button className="btn" onClick={run} disabled={loading || !url}>
-            {loading ? <><span className="spin">⏳</span> Running…</> : <>🚀 Run {tool.label}</>}
+            {loading ? <><span className="spin">{Rocket}</span> Running…</> : <>{Rocket} Run {tool.label}</>}
           </button>
 
-          {error && <div className="error">❌ {error}</div>}
+          {error && <div className="error" role="alert">{error}</div>}
 
           {result && (
             <div className="result">
@@ -157,7 +165,7 @@ export default function Home() {
         </section>
 
         <footer className="footer">
-          Built with Next.js · Groq · MCP — <a href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer">github.com/RLalithSeeker/context</a>
+          Built with Next.js · Groq · MCP · motion by <a href="https://robonuggets.com" target="_blank" rel="noreferrer">RoboLabs</a> — <a href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer">github.com/RLalithSeeker/context</a>
         </footer>
       </div>
     </>
