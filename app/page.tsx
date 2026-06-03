@@ -2,30 +2,52 @@
 import { useState } from "react";
 import "./globals.css";
 
-const TOOLS = [
-  { id: "scrape_markdown", label: "📄 Scrape Markdown", needsExtra: false },
-  { id: "scrape_html", label: "🔧 Scrape HTML", needsExtra: false },
-  { id: "crawl", label: "🕸️ Crawl Website", needsExtra: false },
-  { id: "extract_images", label: "🖼️ Extract Images", needsExtra: false },
-  { id: "sitemap", label: "🗺️ Parse Sitemap", needsExtra: false },
-  { id: "extract_structured", label: "🤖 AI Extract", needsExtra: "schema" },
-  { id: "query", label: "💬 Query Page", needsExtra: "question" },
-  { id: "product", label: "🛒 Product Data", needsExtra: false },
-  { id: "brand", label: "🏢 Brand Intel", needsExtra: false },
-  { id: "styleguide", label: "🎨 Style Guide", needsExtra: false },
-  { id: "fonts", label: "🔤 Fonts", needsExtra: false },
-  { id: "classify_naics", label: "📊 NAICS", needsExtra: false },
-  { id: "classify_sic", label: "📊 SIC", needsExtra: false },
-  { id: "logo", label: "🔗 Logo URL", needsExtra: false },
+const MCP_URL = "https://context-mcp-psi.vercel.app/api/mcp";
+
+type Tool = { id: string; label: string; ico: string; needsExtra?: "question" | "schema" };
+
+const TOOLS: Tool[] = [
+  { id: "scrape_markdown", label: "Scrape Markdown", ico: "📄" },
+  { id: "scrape_html", label: "Scrape HTML", ico: "🔧" },
+  { id: "crawl", label: "Crawl Site", ico: "🕸️" },
+  { id: "extract_images", label: "Extract Images", ico: "🖼️" },
+  { id: "sitemap", label: "Parse Sitemap", ico: "🗺️" },
+  { id: "extract_structured", label: "AI Extract", ico: "🤖", needsExtra: "schema" },
+  { id: "query", label: "Query Page", ico: "💬", needsExtra: "question" },
+  { id: "product", label: "Product Data", ico: "🛒" },
+  { id: "brand", label: "Brand Intel", ico: "🏢" },
+  { id: "styleguide", label: "Style Guide", ico: "🎨" },
+  { id: "fonts", label: "Fonts", ico: "🔤" },
+  { id: "classify_naics", label: "NAICS Code", ico: "📊" },
+  { id: "classify_sic", label: "SIC Code", ico: "📈" },
+  { id: "transaction", label: "Txn Enrich", ico: "💳" },
+  { id: "logo", label: "Logo URL", ico: "🔗" },
 ];
+
+const CONFIG = `{
+  "mcpServers": {
+    "context-mcp": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@latest", "${MCP_URL}"]
+    }
+  }
+}`;
 
 export default function Home() {
   const [url, setUrl] = useState("");
-  const [tool, setTool] = useState(TOOLS[0]);
+  const [tool, setTool] = useState<Tool>(TOOLS[0]);
   const [extraVal, setExtraVal] = useState("");
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState("");
+
+  function copy(text: string, key: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(""), 1600);
+    });
+  }
 
   async function run() {
     setLoading(true);
@@ -51,79 +73,93 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-          Context-MCP
-        </h1>
-        <p className="text-gray-400 mt-1">15 web scraping tools. Paste a URL, pick a tool, get results.</p>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">URL</label>
-          <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com"
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500" />
+    <>
+      <nav className="nav">
+        <div className="brand"><span className="dot" /> Context-MCP</div>
+        <div className="nav-links">
+          <a className="nav-link" href="/api/tools">REST API</a>
+          <a className="nav-link primary" href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer">★ GitHub</a>
         </div>
+      </nav>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Tool</label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {TOOLS.map(t => (
-              <button key={t.id} onClick={() => { setTool(t); setExtraVal(""); }}
-                className={`px-3 py-2 rounded-lg text-sm transition ${tool.id === t.id ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}>
-                {t.label}
-              </button>
-            ))}
+      <div className="wrap">
+        <header className="hero">
+          <span className="pill"><span className="live" /> Live · MCP Streamable HTTP</span>
+          <h1>Turn any website into<br /><span className="grad">structured context</span></h1>
+          <p>15 web-scraping &amp; LLM tools behind one MCP endpoint. Paste a URL, pick a tool, get clean data — markdown, products, brand intel, fonts, and more.</p>
+          <div className="stats">
+            <div className="stat"><b>15</b><span>Tools</span></div>
+            <div className="stat"><b>MCP</b><span>Streamable HTTP</span></div>
+            <div className="stat"><b>REST</b><span>JSON API</span></div>
+            <div className="stat"><b>Groq</b><span>LLM Engine</span></div>
           </div>
-        </div>
+        </header>
 
-        {tool.needsExtra && (
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              {tool.needsExtra === "question" ? "Question" : "JSON Schema"}
-            </label>
-            <input type="text" value={extraVal} onChange={e => setExtraVal(e.target.value)}
-              placeholder={tool.needsExtra === "question" ? "What is this page about?" : '{"type":"object","properties":{"name":{"type":"string"}}}'}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500 font-mono text-sm" />
+        <section className="card">
+          <div className="card-head"><span className="num">1</span><h2>Try it live</h2></div>
+
+          <div className="field">
+            <label className="label">Target URL</label>
+            <input className="input" type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com" />
           </div>
-        )}
 
-        <button onClick={run} disabled={loading || !url}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium transition">
-          {loading ? "⏳ Running..." : "🚀 Run"}
-        </button>
+          <div className="field">
+            <label className="label">Pick a tool</label>
+            <div className="tools">
+              {TOOLS.map(t => (
+                <button key={t.id} onClick={() => { setTool(t); setExtraVal(""); }}
+                  className={`tool${tool.id === t.id ? " active" : ""}`}>
+                  <span className="ico">{t.ico}</span> {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {tool.needsExtra && (
+            <div className="field">
+              <label className="label">{tool.needsExtra === "question" ? "Question" : "JSON Schema"}</label>
+              <input className="input mono" type="text" value={extraVal} onChange={e => setExtraVal(e.target.value)}
+                placeholder={tool.needsExtra === "question" ? "What is this page about?" : '{"type":"object","properties":{"name":{"type":"string"}}}'} />
+            </div>
+          )}
+
+          <button className="btn" onClick={run} disabled={loading || !url}>
+            {loading ? <><span className="spin">⏳</span> Running…</> : <>🚀 Run {tool.label}</>}
+          </button>
+
+          {error && <div className="error">❌ {error}</div>}
+
+          {result && (
+            <div className="result">
+              <div className="result-head">
+                <span className="tag"><span className="live" /> Result</span>
+                <button className="btn-ghost" onClick={() => copy(JSON.stringify(result, null, 2), "result")}>
+                  {copied === "result" ? "✓ Copied" : "Copy JSON"}
+                </button>
+              </div>
+              <pre className="out">{JSON.stringify(result, null, 2)}</pre>
+            </div>
+          )}
+        </section>
+
+        <section className="card">
+          <div className="card-head"><span className="num">2</span><h2>Connect to Claude Code</h2></div>
+          <p className="hint">Add this to your MCP config (<code>~/.claude.json</code> or your client&apos;s settings). It proxies over <code>mcp-remote</code>.</p>
+          <div className="code-block">
+            <button className="btn-ghost copy" onClick={() => copy(CONFIG, "config")}>
+              {copied === "config" ? "✓ Copied" : "Copy"}
+            </button>
+            <pre className="code">{CONFIG}</pre>
+          </div>
+          <p className="hint" style={{ marginTop: 16, marginBottom: 0 }}>
+            Prefer raw HTTP? Hit <code>POST /api/tools</code> with <code>{"{ command, url, ...params }"}</code>.
+          </p>
+        </section>
+
+        <footer className="footer">
+          Built with Next.js · Groq · MCP — <a href="https://github.com/RLalithSeeker/context" target="_blank" rel="noreferrer">github.com/RLalithSeeker/context</a>
+        </footer>
       </div>
-
-      {error && (
-        <div className="p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">❌ {error}</div>
-      )}
-
-      {result && (
-        <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
-          <pre className="text-sm text-gray-300 overflow-auto whitespace-pre-wrap max-h-96">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      )}
-
-      <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg text-sm text-gray-400 space-y-2">
-        <h3 className="text-gray-200 font-medium">Connect to Claude Code</h3>
-        <p>Add this to your Claude config:</p>
-        <pre className="bg-gray-900 p-3 rounded text-xs text-blue-300 overflow-x-auto">
-{`{
-  "mcpServers": {
-    "context-mcp": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/client"],
-      "url": "https://YOUR-VERCEL-URL.vercel.app/api/mcp",
-      "env": { "GROQ_API_KEY": "gsk_..." }
-    }
-  }
-}`}
-        </pre>
-        <p className="text-xs">Or use the REST API directly: <code className="text-blue-400">POST /api/tools</code> with <code className="text-blue-400">{"{ command, url, ...params }"}</code></p>
-      </div>
-    </div>
+    </>
   );
 }
