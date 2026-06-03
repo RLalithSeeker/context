@@ -7,7 +7,7 @@ import { loadPrompt, callGroq, callGroqText } from './groq';
 // ── 1. scrape_markdown (no LLM) ──
 export async function cmd_scrape_markdown(url: string) {
   const html = await fetchHtml(url);
-  const md = toMarkdown(cleanHtml(html));
+  const md = toMarkdown(cleanHtml(html, url));
   return { url, title: getTitle(html), markdown: md, word_count: md.split(/\s+/).filter(Boolean).length, meta: getMeta(html) };
 }
 
@@ -34,7 +34,7 @@ export async function cmd_crawl(url: string, maxPages: number = 20, maxDepth: nu
     visited.add(cur);
     try {
       const html = await fetchHtml(cur);
-      const md = toMarkdown(cleanHtml(html));
+      const md = toMarkdown(cleanHtml(html, cur));
       pages.push({ url: cur, title: getTitle(html), markdown: md, depth, word_count: md.split(/\s+/).filter(Boolean).length });
       for (const link of getLinks(html, cur)) {
         const ld = new URL(link).hostname;
@@ -88,7 +88,7 @@ export async function cmd_sitemap(url: string) {
 // ── 6. extract_structured (LLM) ──
 export async function cmd_extract_structured(url: string, schema: string, instruction?: string) {
   const html = await fetchHtml(url);
-  const md = toMarkdown(cleanHtml(html));
+  const md = toMarkdown(cleanHtml(html, url));
   let system = await loadPrompt('extract_structured');
   if (instruction) system += `\n\nADDITIONAL: ${instruction}`;
   return callGroq(system, `JSON Schema:\n${schema}\n\nContent:\n${md}`);
@@ -97,21 +97,21 @@ export async function cmd_extract_structured(url: string, schema: string, instru
 // ── 7. query (LLM) ──
 export async function cmd_query(url: string, question: string) {
   const html = await fetchHtml(url);
-  const md = toMarkdown(cleanHtml(html));
+  const md = toMarkdown(cleanHtml(html, url));
   return callGroqText(await loadPrompt('query_website'), `QUESTION: ${question}\n\nCONTENT:\nTitle: ${getTitle(html)}\n\n${md}`);
 }
 
 // ── 8. product (LLM) ──
 export async function cmd_product(url: string) {
   const html = await fetchHtml(url);
-  const md = toMarkdown(cleanHtml(html));
+  const md = toMarkdown(cleanHtml(html, url));
   return callGroq(await loadPrompt('product_extraction'), `Content:\n${md}\n\nMeta: ${JSON.stringify(getMeta(html))}`);
 }
 
 // ── 9. brand (LLM) ──
 export async function cmd_brand(url: string) {
   const html = await fetchHtml(url);
-  const md = toMarkdown(cleanHtml(html));
+  const md = toMarkdown(cleanHtml(html, url));
   return callGroq(await loadPrompt('brand_intelligence'), `URL: ${url}\nTitle: ${getTitle(html)}\nMeta: ${JSON.stringify(getMeta(html))}\n\nContent:\n${md.substring(0, 8000)}`);
 }
 
@@ -144,14 +144,14 @@ export async function cmd_fonts(url: string) {
 // ── 12. classify_naics (LLM) ──
 export async function cmd_classify_naics(url: string) {
   const html = await fetchHtml(url);
-  const md = toMarkdown(cleanHtml(html));
+  const md = toMarkdown(cleanHtml(html, url));
   return callGroq(await loadPrompt('classify_industry'), `URL: ${url}\nTitle: ${getTitle(html)}\nMeta: ${JSON.stringify(getMeta(html))}\n\n${md.substring(0, 8000)}\n\nClassify into NAICS (6-digit) codes.`);
 }
 
 // ── 13. classify_sic (LLM) ──
 export async function cmd_classify_sic(url: string) {
   const html = await fetchHtml(url);
-  const md = toMarkdown(cleanHtml(html));
+  const md = toMarkdown(cleanHtml(html, url));
   return callGroq(await loadPrompt('classify_industry'), `URL: ${url}\nTitle: ${getTitle(html)}\nMeta: ${JSON.stringify(getMeta(html))}\n\n${md.substring(0, 8000)}\n\nClassify into SIC (4-digit) codes.`);
 }
 

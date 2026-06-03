@@ -2,7 +2,8 @@ import * as cheerio from 'cheerio';
 import TurndownService from 'turndown';
 
 const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
-const NOISE = 'script, style, nav, footer, aside, iframe, noscript';
+// Keep nav + footer: they hold anchor menus and credit links worth capturing in markdown.
+const NOISE = 'script, style, aside, iframe, noscript';
 
 export async function fetchHtml(url: string): Promise<string> {
   const resp = await fetch(url, {
@@ -29,9 +30,22 @@ export function getMeta(html: string): Record<string, string> {
   return meta;
 }
 
-export function cleanHtml(html: string): string {
+export function cleanHtml(html: string, baseUrl?: string): string {
   const $ = cheerio.load(html);
   $(NOISE).remove();
+  // Resolve relative hrefs/srcs to absolute so links + images survive as full URLs in markdown.
+  if (baseUrl) {
+    $('a[href]').each((_, el) => {
+      const h = $(el).attr('href');
+      if (h && !h.startsWith('#') && !h.startsWith('mailto:') && !h.startsWith('javascript:')) {
+        try { $(el).attr('href', new URL(h, baseUrl).href); } catch {}
+      }
+    });
+    $('img[src]').each((_, el) => {
+      const s = $(el).attr('src');
+      if (s) { try { $(el).attr('src', new URL(s, baseUrl).href); } catch {} }
+    });
+  }
   for (const sel of ['main', 'article', '[role="main"]', '#content', '.content', '.post', '.entry']) {
     const el = $(sel).first();
     if (el.length && el.text().trim().length > 100) return el.html() || '';
