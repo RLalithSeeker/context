@@ -110,6 +110,15 @@ export default function Home() {
     navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(""), 1600); });
   }
 
+  function download(content: string, filename: string, mime = "text/plain") {
+    const blob = new Blob([content], { type: mime });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   async function run() {
     setLoading(true); setError(""); setResult(null);
     try {
@@ -209,10 +218,10 @@ export default function Home() {
           <div className="console">
             <div className="console-body">
               <div className="field">
-                <label className="label" htmlFor="key">{Key} groq api key {needsKey ? <span className="req">required for {tool.label}</span> : <span className="opt">not needed for {tool.label}</span>}</label>
+                <label className="label" htmlFor="key">{Key} groq api key {groqKey && <span className="opt">● saved locally</span>} {needsKey ? <span className="req">required for {tool.label}</span> : <span className="opt">not needed for {tool.label}</span>}</label>
                 <input id="key" className="input mono" type="password" value={groqKey} onChange={e => saveKey(e.target.value)}
                   placeholder="gsk_…  (get one free at console.groq.com/keys)" autoComplete="off" spellCheck={false} />
-                <div className="key-note">Stored in your browser only. Never saved on our server. <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">Get a free key →</a></div>
+                <div className="key-note">Saved in your browser — survives refresh. Never sent to our server. <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">Get a free key →</a></div>
               </div>
 
               <div className="field">
@@ -253,7 +262,16 @@ export default function Home() {
                 <div className="result">
                   <div className="result-head">
                     <span className="tag"><span className="live" /> 200 OK</span>
-                    <button className="btn-ghost" onClick={() => copy(JSON.stringify(result, null, 2), "result")}>{copied === "result" ? "copied" : "copy json"}</button>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      {tool.id === "design_extract" && result.outputs?.design_md && (
+                        <button className="btn-ghost" onClick={() => download(result.outputs.design_md, "DESIGN.md", "text/markdown")}>↓ DESIGN.md</button>
+                      )}
+                      {tool.id === "design_extract" && result.outputs?.design_tokens && (
+                        <button className="btn-ghost" onClick={() => download(JSON.stringify(result.outputs.design_tokens, null, 2), "design-tokens.json", "application/json")}>↓ tokens.json</button>
+                      )}
+                      <button className="btn-ghost" onClick={() => download(JSON.stringify(result, null, 2), `${tool.id}-result.json`, "application/json")}>↓ JSON</button>
+                      <button className="btn-ghost" onClick={() => copy(JSON.stringify(result, null, 2), "result")}>{copied === "result" ? "copied" : "copy"}</button>
+                    </div>
                   </div>
                   <pre className="out">{JSON.stringify(result, null, 2)}</pre>
                 </div>

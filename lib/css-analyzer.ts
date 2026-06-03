@@ -173,9 +173,19 @@ function extractFontFamilies(css: string, html: string): string[] {
   return families.slice(0, 6)
 }
 
+// Normalize any CSS length to px for correct size comparison
+function normalizeToPx(size: string): number {
+  const v = parseFloat(size)
+  if (!v) return 0
+  if (/rem/.test(size)) return v * 16
+  if (/em/.test(size)) return v * 16
+  if (/pt/.test(size)) return v * 1.333
+  return v // px or unitless
+}
+
 function extractFontSizes(css: string): Map<string, number> {
   const counts = new Map<string, number>()
-  const re = /font-size:\s*(\d+(?:\.\d+)?(?:px|rem|em))/gi
+  const re = /font-size:\s*(\d+(?:\.\d+)?(?:px|rem|em|pt))/gi
   let m: RegExpExecArray | null
   while ((m = re.exec(css)) !== null) counts.set(m[1], (counts.get(m[1]) || 0) + 1)
   return counts
@@ -199,7 +209,8 @@ function extractLineHeights(css: string): string[] {
 
 function extractSpacingValues(css: string): Map<number, number> {
   const counts = new Map<number, number>()
-  const re = /(?:margin|padding)(?:-(?:top|right|bottom|left|inline|block|start|end))?\s*:\s*([^;{}]+)/gi
+  // Cast net wider: padding, margin, gap, inset — all layout spacing properties
+  const re = /(?:padding|margin|gap|row-gap|column-gap|inset)(?:-(?:top|right|bottom|left|inline|block|start|end))?\s*:\s*([^;{}]+)/gi
   let m: RegExpExecArray | null
   while ((m = re.exec(css)) !== null) {
     const parts = m[1].split(/\s+/)
@@ -207,15 +218,16 @@ function extractSpacingValues(css: string): Map<number, number> {
       const vMatch = p.match(/^(\d+(?:\.\d+)?)px$/)
       if (vMatch) {
         const v = parseFloat(vMatch[1])
-        if (v >= 2 && v <= 120) counts.set(v, (counts.get(v) || 0) + 1)
+        // 4–200px: below 4 is likely border/outline noise; above 200 is likely width/height
+        if (v >= 4 && v <= 200) counts.set(v, (counts.get(v) || 0) + 1)
+      }
+      // Also count rem values (convert to px)
+      const remMatch = p.match(/^(\d+(?:\.\d+)?)rem$/)
+      if (remMatch) {
+        const v = Math.round(parseFloat(remMatch[1]) * 16)
+        if (v >= 4 && v <= 200) counts.set(v, (counts.get(v) || 0) + 1)
       }
     }
-  }
-  // Also gap
-  const gapRe = /gap:\s*(\d+)px/gi
-  while ((m = gapRe.exec(css)) !== null) {
-    const v = +m[1]
-    if (v >= 2 && v <= 120) counts.set(v, (counts.get(v) || 0) + 1)
   }
   return counts
 }
@@ -241,10 +253,13 @@ function extractBorderRadius(css: string): Map<string, number> {
   const re = /border-radius:\s*([^;{}]+)/gi
   let m: RegExpExecArray | null
   while ((m = re.exec(css)) !== null) {
-    const v = m[1].trim().split(/\s+/)[0] // take first value of shorthand
-    if (/^\d/.test(v) && v !== '0' && v !== '0px') {
-      counts.set(v, (counts.get(v) || 0) + 1)
+    // Strip !important, take first value of shorthand
+    const raw = m[1].trim().split(/\s+/)[0].replace(/!important/gi, '').trim()
+    if (/^\d/.test(raw) && raw !== '0' && raw !== '0px') {
+      counts.set(raw, (counts.get(raw) || 0) + 1)
     }
+    // Also catch % and full values (50%, 100%)
+    if (/^\d+%$/.test(raw)) counts.set(raw, (counts.get(raw) || 0) + 1)
   }
   return counts
 }
@@ -394,10 +409,13 @@ export function analyzeCss(css: string, html: string): AnalyzedDesign {
 
   const fontSizeFreq = extractFontSizes(css)
   const topSizes = [...fontSizeFreq.entries()]
-    .sort((a,b) => b[1]-a[1])
-    .slice(0, 10)
+    .sort((a,b) => b[1]-a[1])    // first pick top-10 by frequency
+    .slice(0, 12)
     .map(e => e[0])
-    .sort((a,b) => parseFloat(b) - parseFloat(a))
+    // Sort by NORMALIZED px value (fixes 7.5em > 18px ordering)
+    .sort((a,b) => normalizeToPx(b) - normalizeToPx(a))
+    // Drop tiny utility sizes (< 8px normalized) that aren't type scale
+    .filter(s => normalizeToPx(s) >= 8)
 
   const roles = ['Display', 'H1', 'H2', 'H3', 'H4', 'Body Large', 'Body', 'Small', 'Caption', 'Label']
   const typeScale: TypeScale[] = topSizes.slice(0, 8).map((size, i) => ({
