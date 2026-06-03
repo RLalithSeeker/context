@@ -16,12 +16,11 @@ export default function Mesh() {
     if (!ctx) return;
 
     const colors = [
-      "rgba(34,197,94,0.20)",   // run green
-      "rgba(16,185,129,0.16)",  // emerald
-      "rgba(45,89,140,0.18)",   // slate blue
-      "rgba(34,211,238,0.12)",  // cyan
+      "rgba(58,209,126,0.14)",  // accent green
+      "rgba(45,140,110,0.10)",  // deep teal
+      "rgba(40,70,120,0.10)",   // muted blue
     ];
-    const speed = 0.35;
+    const speed = 0.28;
     const blobs = colors.map((c) => ({
       x: Math.random(), y: Math.random(),
       vx: (Math.random() - 0.5) * speed, vy: (Math.random() - 0.5) * speed,
@@ -39,7 +38,7 @@ export default function Mesh() {
     function paint(animate: boolean) {
       if (!canvas || !ctx) return;
       const w = canvas.width, h = canvas.height;
-      ctx.fillStyle = "#070b14";
+      ctx.fillStyle = "#08090c";
       ctx.fillRect(0, 0, w, h);
       blobs.forEach((b) => {
         if (animate) {
