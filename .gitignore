@@ -5,3 +5,16 @@ dist/
 .env.local
 *.local
 .DS_Store
+
+.vercel
+
+# build artifacts
+tsconfig.tsbuildinfo
+
+# stitch scratch + tooling (kept locally, never shipped)
+compress_bg.py
+stitch.zip
+stitch_export/
+screencapture-*.png
+public/bg-flourish.png
+*.original.md
